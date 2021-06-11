@@ -594,6 +594,10 @@ int parseEventData(char* str, event_params_t **val)
 
 	if(str !=NULL)
 	{
+		WEBCFG_FREE(str);
+	}
+	if(str !=NULL)
+	{
 		param = (event_params_t *)malloc(sizeof(event_params_t));
 		if(param)
 		{

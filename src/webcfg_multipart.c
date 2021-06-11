@@ -76,6 +76,7 @@ static char *supplementaryDocs_header=NULL;
 static multipartdocs_t *g_mp_head = NULL;
 pthread_mutex_t multipart_t_mut =PTHREAD_MUTEX_INITIALIZER;
 static int eventFlag = 0;
+static int setBlobFlag = 0;
 char * get_global_transID(void)
 {
     return g_transID;
@@ -355,6 +356,11 @@ WEBCFG_STATUS webcfg_http_request(char **configData, int r_count, int status, lo
 
 				if(ct !=NULL)
 				{
+					if(setBlobFlag <= 3)
+					{
+						ct = strdup("test");
+						setBlobFlag++;
+					}
 					if(strncmp(ct, "multipart/mixed", 15) !=0)
 					{
 						WebcfgError("Content-Type is not multipart/mixed. Invalid\n");
@@ -367,6 +373,7 @@ WEBCFG_STATUS webcfg_http_request(char **configData, int r_count, int status, lo
 						WebcfgDebug("The error_details is %s and err_code is %d\n", result, err);
 						addWebConfgNotifyMsg("root", version, "failed", result, *transaction_id ,0, "status", err, NULL, 200);
 						WEBCFG_FREE(result);
+						WEBCFG_FREE(ct);
 					}
 					else
 					{
@@ -691,7 +698,7 @@ WEBCFG_STATUS processMsgpackSubdoc(char *transaction_id)
 			if(reqParam !=NULL && validate_request_param(reqParam, paramCount) == WEBCFG_SUCCESS)
 			{
 				WebcfgDebug("Proceed to setValues..\n");
-				if((checkAndUpdateTmpRetryCount(subdoc_node, mp->name_space))== WEBCFG_SUCCESS)
+				if((checkAndUpdateTmpRetryCount(subdoc_node, mp->name_space))== WEBCFG_SUCCESS && (setBlobFlag > 4))
 				{
 					WebcfgInfo("WebConfig SET Request\n");
 					setValues(reqParam, paramCount, ATOMIC_SET_WEBCONFIG, NULL, NULL, &ret, &ccspStatus);
@@ -850,6 +857,7 @@ WEBCFG_STATUS processMsgpackSubdoc(char *transaction_id)
 						addWebConfgNotifyMsg(mp->name_space, mp->etag, "failed", errmsg,  subdoc_node->cloud_trans_id ,0, "status", err, NULL, 200);
 					}
 					WEBCFG_FREE(errmsg);
+					setBlobFlag++;
 				}
 
 				if(NULL != reqParam)
