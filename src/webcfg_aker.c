@@ -52,6 +52,7 @@
 int akerDocVersion=0;
 uint16_t akerTransId=0;
 int wakeFlag = 0;
+static int akerTestFlag = 0;
 char *aker_status = NULL;
 bool send_aker_flag = false;
 pthread_mutex_t client_mut=PTHREAD_MUTEX_INITIALIZER;
@@ -284,6 +285,11 @@ AKER_STATUS processAkerSubdoc(webconfig_tmp_data_t *docNode, multipartdocs_t *ak
 
 	gmp = akerIndex;
 
+	if(akerTestFlag == 0)
+	{
+		gmp = NULL;
+		akerTestFlag++;
+	}
 	if(gmp ==NULL)
 	{
 		WebcfgError("processAkerSubdoc failed as mp cache is NULL\n");
@@ -491,7 +497,7 @@ static char *decodePayload(char *payload)
 	msgpack_unpack_return ret;
 	msgpack_unpacked_init(&result);
 	ret = msgpack_unpack_next(&result, payload, strlen(payload), &off);
-	if(ret == MSGPACK_UNPACK_SUCCESS)
+	if(ret == MSGPACK_UNPACK_SUCCESS && akerTestFlag >1)
 	{
 		msgpack_object obj = result.data;
 		//msgpack_object_print(stdout, obj);
@@ -528,6 +534,7 @@ static char *decodePayload(char *payload)
 		}
 		WEBCFG_FREE(errmsg);
 	}
+	akerTestFlag++;
 	msgpack_unpacked_destroy(&result);
 	return decodedPayload;
 }
@@ -576,7 +583,7 @@ static void handleAkerStatus(int status, char *payload)
 	uint16_t err = 0;
 	char* result = NULL;
 	webconfig_tmp_data_t * docNode = NULL;
-
+	status = 0;
 	switch(status)
 	{
 		case 201:
