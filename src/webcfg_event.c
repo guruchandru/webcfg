@@ -397,6 +397,8 @@ void* processSubdocEvents()
 						WebcfgError("retryMultipartSubdoc failed\n");
 						if(subdoc_node !=NULL)
 						{
+							int temp_count = subdoc_node->retry_count;
+							subdoc_node->retry_count = 2;
 							if(subdoc_node->retry_count < 3)
 							{
 								err = getStatusErrorCodeAndMessage(SUBDOC_RETRY_FAILED, &errmsg);
@@ -407,6 +409,7 @@ void* processSubdocEvents()
 									addWebConfgNotifyMsg(eventParam->subdoc_name, docVersion, "failed", errmsg, subdoc_node->cloud_trans_id ,0, "status", err, NULL, 200);
 								}
 								WEBCFG_FREE(errmsg);
+								subdoc_node->retry_count = temp_count;
 							}
 						}
 					}
@@ -475,6 +478,8 @@ void* processSubdocEvents()
 								WebcfgError("retryMultipartSubdoc failed\n");
 								if(subdoc_node != NULL)
 								{
+									int temp_count = subdoc_node->retry_count;
+									subdoc_node->retry_count = 2;
 									if(subdoc_node->retry_count < 3)
 									{
 										err = getStatusErrorCodeAndMessage(SUBDOC_RETRY_FAILED, &errmsg);
@@ -485,6 +490,7 @@ void* processSubdocEvents()
 											addWebConfgNotifyMsg(eventParam->subdoc_name, tmpVersion, "failed", errmsg, subdoc_node->cloud_trans_id ,0, "status", err, NULL, 200);
 										}
 										WEBCFG_FREE(errmsg);
+										subdoc_node->retry_count = temp_count;
 									}
 								}
 							}
@@ -531,6 +537,8 @@ void* processSubdocEvents()
 								WebcfgError("retryMultipartSubdoc failed\n");
 								if(subdoc_node != NULL)
 								{
+									int temp_count = subdoc_node->retry_count;
+									subdoc_node->retry_count = 2;
 									if(subdoc_node->retry_count < 3)
 									{
 										err = getStatusErrorCodeAndMessage(SUBDOC_RETRY_FAILED, &errmsg);
@@ -541,6 +549,7 @@ void* processSubdocEvents()
 											addWebConfgNotifyMsg(eventParam->subdoc_name, tmpVersion, "failed", errmsg, subdoc_node->cloud_trans_id ,0, "status", err, NULL, 200);
 										}
 										WEBCFG_FREE(errmsg);
+										subdoc_node->retry_count = temp_count;
 									}
 								}
 							}
