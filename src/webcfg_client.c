@@ -159,6 +159,7 @@ void* parodus_receive()
 
 	while(1)
 	{
+
 		if (get_global_shutdown())
 		{
 			WebcfgDebug("g_shutdown true, break libparodus_receive\n");
@@ -166,6 +167,12 @@ void* parodus_receive()
 			break;
 		}
 		rtn = libparodus_receive (webcfg_instance, &wrp_msg, 2000);
+
+		if(get_send_aker_flag())
+		{
+			rtn = 2;
+		}
+
 		if (rtn == 1)
 		{
 			sleep_counter = 0;
