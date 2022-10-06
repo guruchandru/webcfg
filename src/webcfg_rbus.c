@@ -35,6 +35,7 @@ static char* forceSyncVal = NULL ;
 static char* SupportedDocsVal = NULL ;
 static char* SupportedVersionVal = NULL ;
 static char* SupplementaryURLVal = NULL ;
+static char* SubdocResetVal = NULL ;
 static bool isRbus = false ;
 static char* BinDataVal = NULL ;
 static char *paramRFCEnable = "eRT.com.cisco.spvtg.ccsp.webpa.WebConfigRfcEnable";
@@ -791,6 +792,98 @@ rbusError_t webcfgFrGetHandler(rbusHandle_t handle, rbusProperty_t property, rbu
     return RBUS_ERROR_SUCCESS;
 }
 
+rbusError_t webcfgPrimarySubdocForceResetGetHandler(rbusHandle_t handle, rbusProperty_t property, rbusGetHandlerOptions_t* opts) {
+
+    (void) handle;
+    (void) opts;
+    char const* propertyName;
+
+    propertyName = rbusProperty_GetName(property);
+    if(propertyName) {
+        WebcfgInfo("Property Name is %s \n", propertyName);
+    } else {
+        WebcfgError("Unable to handle get request for property \n");
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+    if(strncmp(propertyName, WEBCFG_PRIMARY_SUBDOC_FORCERESET_PARAM, maxParamLen) == 0) {
+
+        rbusValue_t value;
+        rbusValue_Init(&value);
+        rbusValue_SetString(value, "");
+        rbusProperty_SetValue(property, value);
+        rbusValue_Release(value);
+
+        if(!isRfcEnabled())
+        {
+                WebcfgError("RfcEnable is disabled so, %s Get from DB failed\n",propertyName);
+                return 0;
+        }
+    }
+    return RBUS_ERROR_SUCCESS;
+}
+
+rbusError_t webcfgPrimarySubdocForceResetSetHandler(rbusHandle_t handle, rbusProperty_t prop, rbusSetHandlerOptions_t* opts) {
+
+    (void) handle;
+    (void) opts;
+    char const* paramName = rbusProperty_GetName(prop);
+    if(strncmp(paramName, WEBCFG_PRIMARY_SUBDOC_FORCERESET_PARAM, maxParamLen) != 0)
+    {
+        WebcfgError("Unexpected parameter = %s\n", paramName);
+        return RBUS_ERROR_ELEMENT_DOES_NOT_EXIST;
+    }
+
+    rbusError_t retPsmSet = RBUS_ERROR_BUS_ERROR;
+    WebcfgInfo("Parameter name is %s \n", paramName);
+    rbusValueType_t type_t;
+    rbusValue_t paramValue_t = rbusProperty_GetValue(prop);
+    if(paramValue_t) {
+        type_t = rbusValue_GetType(paramValue_t);
+    } else {
+	WebcfgError("Invalid input to set\n");
+        return RBUS_ERROR_INVALID_INPUT;
+    }
+
+    if(strncmp(paramName, WEBCFG_PRIMARY_SUBDOC_FORCERESET_PARAM, maxParamLen) == 0){
+
+	if (!isRfcEnabled())
+	{
+		WebcfgError("RfcEnable is disabled so, %s SET failed\n",paramName);
+		return RBUS_ERROR_ACCESS_NOT_ALLOWED;
+	}
+        if(type_t == RBUS_STRING) {
+            char* data = rbusValue_ToString(paramValue_t, NULL, 0);
+            if(data)
+            {
+                WebcfgInfo("Call datamodel function  with data %s\n", data);
+
+                if(SubdocResetVal) {
+                    free(SubdocResetVal);
+                    SubdocResetVal = NULL;
+                }
+                SubdocResetVal = strdup(data);
+                free(data);
+		WebcfgInfo("SubdocResetVal after processing %s\n", SubdocResetVal);
+		retPsmSet = rbus_StoreValueIntoDB( WEBCFG_PRIMARY_SUBDOC_FORCERESET_PARAM, SubdocResetVal );
+		if (retPsmSet != RBUS_ERROR_SUCCESS)
+		{
+			WebcfgError("psm_set failed ret %d for parameter %s and value %s\n", retPsmSet, paramName, SubdocResetVal);
+			return retPsmSet;
+		}
+		else
+		{
+			WebcfgInfo("psm_set success ret %d for parameter %s and value %s\n", retPsmSet, paramName, SubdocResetVal);
+		}
+            }
+        }
+         else {
+            WebcfgError("Unexpected value type for property %s\n", paramName);
+	    return RBUS_ERROR_INVALID_INPUT;
+        }
+    }
+     return RBUS_ERROR_SUCCESS;
+}
+
 /**
  *Event subscription handler to track the subscribers for the event
  */
@@ -1011,6 +1104,7 @@ WEBCFG_STATUS regWebConfigDataModel()
 		{WEBCFG_DATA_PARAM, RBUS_ELEMENT_TYPE_PROPERTY, {webcfgDataGetHandler, webcfgDataSetHandler, NULL, NULL, NULL, NULL}},
 		{WEBCFG_SUPPORTED_DOCS_PARAM, RBUS_ELEMENT_TYPE_PROPERTY, {webcfgSupportedDocsGetHandler, webcfgSupportedDocsSetHandler, NULL, NULL, NULL, NULL}},
 		{WEBCFG_SUPPORTED_VERSION_PARAM, RBUS_ELEMENT_TYPE_PROPERTY, {webcfgSupportedVersionGetHandler, webcfgSupportedVersionSetHandler, NULL, NULL, NULL, NULL}},
+		{WEBCFG_PRIMARY_SUBDOC_FORCERESET_PARAM, RBUS_ELEMENT_TYPE_PROPERTY, {webcfgPrimarySubdocForceResetGetHandler, webcfgPrimarySubdocForceResetSetHandler, NULL, NULL, NULL, NULL}},
 		{WEBCFG_UPSTREAM_EVENT, RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, eventSubHandler, NULL}},
 		{WEBCFG_UTIL_METHOD, RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, fetchCachedBlobHandler}}
 	};
