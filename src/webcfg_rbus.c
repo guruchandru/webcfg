@@ -44,6 +44,7 @@ static char ForceSync[256]={'\0'};
 static char ForceSyncTransID[256]={'\0'};
 
 static int subscribed = 0;
+static int subdoc_reset_event_subscribed = 0;
 
 #ifdef WAN_FAILOVER_SUPPORTED
 static void eventReceiveHandler(
@@ -898,6 +899,10 @@ rbusError_t eventSubHandler(rbusHandle_t handle, rbusEventSubAction_t action, co
     {
         subscribed = action == RBUS_EVENT_ACTION_SUBSCRIBE ? 1 : 0;
     }
+    else if(!strcmp(WEBCFG_SUBDOC_RESET_EVENT, eventName))
+    {
+        subdoc_reset_event_subscribed = action == RBUS_EVENT_ACTION_SUBSCRIBE ? 1 : 0;
+    }
     else
     {
         WebcfgError("provider: eventSubHandler unexpected eventName %s\n", eventName);
@@ -1106,6 +1111,7 @@ WEBCFG_STATUS regWebConfigDataModel()
 		{WEBCFG_SUPPORTED_VERSION_PARAM, RBUS_ELEMENT_TYPE_PROPERTY, {webcfgSupportedVersionGetHandler, webcfgSupportedVersionSetHandler, NULL, NULL, NULL, NULL}},
 		{WEBCFG_PRIMARY_SUBDOC_FORCERESET_PARAM, RBUS_ELEMENT_TYPE_PROPERTY, {webcfgPrimarySubdocForceResetGetHandler, webcfgPrimarySubdocForceResetSetHandler, NULL, NULL, NULL, NULL}},
 		{WEBCFG_UPSTREAM_EVENT, RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, eventSubHandler, NULL}},
+		{WEBCFG_SUBDOC_RESET_EVENT, RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, eventSubHandler, NULL}},
 		{WEBCFG_UTIL_METHOD, RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, fetchCachedBlobHandler}}
 	};
 	ret = rbus_regDataElements(rbus_handle, NUM_WEBCFG_ELEMENTS, dataElements);
