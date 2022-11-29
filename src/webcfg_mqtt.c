@@ -28,6 +28,7 @@
 #include "webcfg_generic.h"
 #include "webcfg_multipart.h"
 #include "webcfg_mqtt.h"
+#include "webcfg_rbus.h"
 
 void on_connect(struct mosquitto *mosq, void *obj, int reason_code);
 void on_subscribe(struct mosquitto *mosq, void *obj, int mid, int qos_count, const int *granted_qos);
@@ -82,7 +83,8 @@ void convertToUppercase(char* deviceId)
 bool webcfg_mqtt_init(int status, char *systemreadytime)
 {
 	char *client_id , *username = NULL;
-	char * topic, *hostname = NULL;
+	char * topic = NULL;
+	char *hostname = NULL;
 	char *PORT = NULL;
 	int rc;
 
@@ -113,8 +115,12 @@ bool webcfg_mqtt_init(int status, char *systemreadytime)
 		WebcfgInfo("client_id is %s username is %s\n", client_id, username);
 
 		//fetch broker hostname ,topic from file
-		get_from_file("TOPIC=", &topic);
-		get_from_file("HOSTNAME=", &hostname);
+		//get_from_file("TOPIC=", &topic);
+		//get_from_file("HOSTNAME=", &hostname);
+
+		get_mqttParam(WEBCFG_MQTT_SUBSCRIBE_TOPIC_PARAM, &topic);
+		get_mqttParam(WEBCFG_MQTT_BROKER_PARAM, &hostname);
+
 		if(topic != NULL)
 		{
 			WebcfgInfo("The topic is %s\n", topic);
@@ -313,7 +319,8 @@ void on_connect(struct mosquitto *mosq, void *obj, int reason_code)
 
 	if(!subscribeFlag)
 	{
-		get_from_file("TOPIC=", &topic);
+		//get_from_file("TOPIC=", &topic);
+		get_mqttParam(WEBCFG_MQTT_SUBSCRIBE_TOPIC_PARAM, &topic);
 
 		if(topic != NULL)
 		{
@@ -435,8 +442,24 @@ void publish_notify_mqtt(char *pub_topic, void *payload, ssize_t len, char * des
 
 	if(pub_topic == NULL)
 	{
-		get_from_file("PUB_TOPIC=", &pub_topic);
-		WebcfgInfo("pub_topic from file is %s\n", pub_topic);
+		//get_from_file("PUB_TOPIC=", &pub_topic);
+		char * locId = NULL;
+		char * temp_pub_topic = NULL;
+
+		get_mqttParam(WEBCFG_MQTT_LOCATIONID_PARAM, &locId);
+		get_mqttParam(WEBCFG_MQTT_PUBLISH_NOTIFY_TOPIC_PARAM, &temp_pub_topic);
+
+		if((NULL != temp_pub_topic) && (NULL != locId))
+		{
+			snprintf(pub_topic, MAX_BUF_SIZE, "%s%s", temp_pub_topic, locId);
+			free(temp_pub_topic);
+			free(locId);
+		}
+
+		if(NULL != pub_topic)
+		{
+			WebcfgInfo("pub_topic from file is %s\n", pub_topic);
+		}
 	}
 	else
 	{
@@ -512,10 +535,32 @@ int triggerBootupSync()
 		if(mqttheaderList !=NULL)
 		{
 			WebcfgInfo("mqttheaderList generated is \n%s len %zu\n", mqttheaderList, strlen(mqttheaderList));
-			get_from_file("PUB_GET_TOPIC=", &pub_get_topic);
-			WebcfgInfo("pub_get_topic from file is %s\n", pub_get_topic);
-			publish_notify_mqtt(pub_get_topic, (void*)mqttheaderList, strlen(mqttheaderList), NULL);
-			WebcfgInfo("triggerBootupSync published to topic %s\n", pub_get_topic);
+			//get_from_file("PUB_GET_TOPIC=", &pub_get_topic);
+
+			char * locId = NULL;
+			char * temp_pub_topic = NULL;
+
+			get_mqttParam(WEBCFG_MQTT_LOCATIONID_PARAM, &locId);
+			get_mqttParam(WEBCFG_PUBLISH_GET_TOPIC_PARAM, &temp_pub_topic);
+
+			if((NULL != temp_pub_topic) && (NULL != locId))
+			{
+				snprintf(pub_get_topic, MAX_BUF_SIZE, "%s%s", temp_pub_topic, locId);
+				free(temp_pub_topic);
+				free(locId);
+			}
+
+			if(NULL != pub_get_topic)
+			{
+				WebcfgInfo("pub_get_topic from file is %s\n", pub_get_topic);
+				publish_notify_mqtt(pub_get_topic, (void*)mqttheaderList, strlen(mqttheaderList), NULL);
+				WebcfgInfo("triggerBootupSync published to topic %s\n", pub_get_topic);
+			}
+			else
+			{
+				WebcfgError("Failed to get pub_get_topic\n");
+				return 0;
+			}
 		}
 		else
 		{

@@ -125,6 +125,30 @@ bool isRbusInitialized( )
     return rbus_handle != NULL ? true : false;
 }
 
+#ifdef WEBCONFIG_MQTT_SUPPORT
+void get_mqttParam(char * paramName, char ** paramValue)
+{
+	rbusError_t rc = RBUS_ERROR_SUCCESS;
+	rbusValue_t value;
+	rbusHandle_t rbus_handle = get_global_rbus_handle();
+
+	rc = rbus_get(rbus_handle, paramName, &value);
+
+	if(rc != RBUS_ERROR_SUCCESS)
+	{
+		WebcfgError("rbus_get failed for %s with err %d: %s\n", paramName, rc, rbusError_ToString(rc));
+		return;
+	}
+	else
+	{
+		WebcfgDebug("rbus_checkIfSystemReady returns %d\n", rbusValue_GetBoolean(value));
+		*paramValue = (char *)rbusValue_GetString(value, NULL);
+		WebcfgDebug("Obtained value of %s is %s\n", paramName, *paramValue);
+	}
+	rbusValue_Release(value);
+}
+#endif
+
 WEBCFG_STATUS webconfigRbusInit(const char *pComponentName) 
 {
 	int ret = RBUS_ERROR_SUCCESS;   
@@ -505,7 +529,7 @@ rbusError_t webcfgMqttLocationIdSetHandler(rbusHandle_t handle, rbusProperty_t p
                 		}
                 		locationId = strdup(data);
                 		free(data);
-				WebcfgDebug("LocationId after processing %s\n", locationId);
+				WebcfgInfo("LocationId after processing %s\n", locationId);
 				retPsmSet = rbus_StoreValueIntoDB( WEBCFG_MQTT_LOCATIONID_PARAM, locationId);
 				if (retPsmSet != RBUS_ERROR_SUCCESS)
 				{
@@ -566,7 +590,7 @@ rbusError_t webcfgMqttBrokerSetHandler(rbusHandle_t handle, rbusProperty_t prop,
                 	}
                 	broker = strdup(data);
                 	free(data);
-			WebcfgDebug("Broker after processing %s\n", broker);
+			WebcfgInfo("Broker after processing %s\n", broker);
 			retPsmSet = rbus_StoreValueIntoDB( WEBCFG_MQTT_BROKER_PARAM, broker);
 			if (retPsmSet != RBUS_ERROR_SUCCESS)
 			{
@@ -628,7 +652,7 @@ rbusError_t webcfgMqttSubscribeTopicSetHandler(rbusHandle_t handle, rbusProperty
                 	}
                 	SubscribeTopic = strdup(data);
                 	free(data);
-			WebcfgDebug("Subscribe Topic after processing %s\n", SubscribeTopic);
+			WebcfgInfo("Subscribe Topic after processing %s\n", SubscribeTopic);
 			retPsmSet = rbus_StoreValueIntoDB( WEBCFG_MQTT_SUBSCRIBE_TOPIC_PARAM, SubscribeTopic);
 			if (retPsmSet != RBUS_ERROR_SUCCESS)
 			{
@@ -689,7 +713,7 @@ rbusError_t webcfgMqttPublicSetTopicSetHandler(rbusHandle_t handle, rbusProperty
                 	}
                 	PublishGetTopic = strdup(data);
                 	free(data);
-			WebcfgDebug("PublishGetTopic after processing %s\n", PublishGetTopic);
+			WebcfgInfo("PublishGetTopic after processing %s\n", PublishGetTopic);
 			retPsmSet = rbus_StoreValueIntoDB( WEBCFG_PUBLISH_GET_TOPIC_PARAM, PublishGetTopic);
 			if (retPsmSet != RBUS_ERROR_SUCCESS)
 			{
@@ -751,7 +775,7 @@ rbusError_t webcfgMqttPublishNotifyTopicSetHandler(rbusHandle_t handle, rbusProp
 			}
 			PublishNotifyTopic = strdup(data);
 			free(data);
-			WebcfgDebug("PublishNotifyTopic after processing %s\n", PublishNotifyTopic);
+			WebcfgInfo("PublishNotifyTopic after processing %s\n", PublishNotifyTopic);
 			retPsmSet = rbus_StoreValueIntoDB( WEBCFG_MQTT_PUBLISH_NOTIFY_TOPIC_PARAM, PublishNotifyTopic);
 			if (retPsmSet != RBUS_ERROR_SUCCESS)
 			{
