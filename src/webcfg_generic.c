@@ -256,10 +256,10 @@ return;
 void sendNotification(char *payload, char *source, char *destination)
 {
 #ifdef WEBCONFIG_BIN_SUPPORT
-	WebcfgDebug("Inside sendNotification weak impl\n");
+	WebcfgInfo("Inside sendNotification weak impl\n");
 	if(isRbusEnabled())
 	{
-		WebcfgDebug("B4 sendNotification_rbus\n");
+		WebcfgInfo("B4 sendNotification_rbus call\n");
 		sendNotification_rbus(payload, source, destination);
 	}
 #else

@@ -80,6 +80,7 @@ void initWebConfigNotifyTask()
 
 void addWebConfgNotifyMsg(char *docname, uint32_t version, char *status, char *error_details, char *transaction_uuid, uint32_t timeout, char *type, uint16_t error_code, char *root_string, long response_code)
 {
+	WebcfgInfo("Inside addWebConfgNotifyMsg\n");
 	notify_params_t *args = NULL;
 
 	args = (notify_params_t *)malloc(sizeof(notify_params_t));
@@ -133,7 +134,7 @@ void addWebConfgNotifyMsg(char *docname, uint32_t version, char *status, char *e
 
 		args->response_code = response_code;
 
-		WebcfgDebug("args->name:%s,args->application_status:%s,args->timeout:%lu,args->error_details:%s,args->version:%s,args->transaction_uuid:%s,args->type:%s,args->error_code:%lu,args->response_code:%lu\n",args->name,args->application_status, (long)args->timeout, args->error_details, args->version, args->transaction_uuid, args->type, (long)args->error_code,args->response_code );
+		WebcfgInfo("args->name:%s,args->application_status:%s,args->timeout:%lu,args->error_details:%s,args->version:%s,args->transaction_uuid:%s,args->type:%s,args->error_code:%lu,args->response_code:%lu\n",args->name,args->application_status, (long)args->timeout, args->error_details, args->version, args->transaction_uuid, args->type, (long)args->error_code,args->response_code );
 
 		args->next=NULL;
 
@@ -142,10 +143,10 @@ void addWebConfgNotifyMsg(char *docname, uint32_t version, char *status, char *e
 		if(notifyMsgQ == NULL)
 		{
 			notifyMsgQ = args;
-			WebcfgDebug("Producer added notify message\n");
+			WebcfgInfo("Producer added notify message\n");
 			pthread_cond_signal(&notify_con);
 			pthread_mutex_unlock (&notify_mut);
-			WebcfgDebug("mutex unlock in notify producer thread\n");
+			WebcfgInfo("mutex unlock in notify producer thread\n");
 		}
 		else
 		{
@@ -176,13 +177,13 @@ void* processWebConfgNotification()
 	while(1)
 	{
 		pthread_mutex_lock (&notify_mut);
-		WebcfgDebug("mutex lock in notify consumer thread\n");
+		WebcfgInfo("mutex lock in notify consumer thread\n");
 		if(notifyMsgQ != NULL)
 		{
 			notify_params_t *msg = notifyMsgQ;
 			notifyMsgQ = notifyMsgQ->next;
 			pthread_mutex_unlock (&notify_mut);
-			WebcfgDebug("mutex unlock in notify consumer thread\n");
+			WebcfgInfo("mutex unlock in notify consumer thread\n");
 
 			if((get_deviceMAC() !=NULL) && (strlen(get_deviceMAC()) == 0))
 			{
@@ -191,7 +192,7 @@ void* processWebConfgNotification()
 			else
 			{
 				snprintf(device_id, sizeof(device_id), "mac:%s", get_deviceMAC());
-				WebcfgDebug("webconfig Device_id %s\n", device_id);
+				WebcfgInfo("webconfig Device_id %s\n", device_id);
 
 				notifyPayload = cJSON_CreateObject();
 
@@ -245,14 +246,18 @@ void* processWebConfgNotification()
 				}
 				WebcfgInfo("dest is %s\n", dest);
 
+				WebcfgInfo("After dest value print\n");
+
 				if (stringifiedNotifyPayload != NULL && strlen(device_id) != 0)
 				{
 					source = (char*) malloc(sizeof(char) * sizeof(device_id));
 					strncpy(source, device_id, sizeof(device_id));
-					WebcfgDebug("source is %s\n", source);
+					WebcfgInfo("source is %s\n", source);
 					WebcfgInfo("stringifiedNotifyPayload is %s\n", stringifiedNotifyPayload);
+					WebcfgInfo("Before sendNotification\n");
 					//stringifiedNotifyPayload, source to be freed by sendNotification
 					sendNotification(stringifiedNotifyPayload, source, dest);
+					WebcfgInfo("After sendNotification\n");
 				}
 					free_notify_params_struct(msg);
 					msg = NULL;
@@ -262,14 +267,14 @@ void* processWebConfgNotification()
 		{
 			if (get_global_shutdown())
 			{
-				WebcfgDebug("g_shutdown in notify consumer thread\n");
+				WebcfgInfo("g_shutdown in notify consumer thread\n");
 				pthread_mutex_unlock (&notify_mut);
 				break;
 			}
-			WebcfgDebug("Before pthread cond wait in notify thread\n");
+			WebcfgInfo("Before pthread cond wait in notify thread\n");
 			pthread_cond_wait(&notify_con, &notify_mut);
 			pthread_mutex_unlock (&notify_mut);
-			WebcfgDebug("mutex unlock in notify thread after cond wait\n");
+			WebcfgInfo("mutex unlock in notify thread after cond wait\n");
 		}
 	}
 	return NULL;

@@ -1984,6 +1984,7 @@ void sendNotification_rbus(char *payload, char *source, char *destination)
 	ssize_t msg_len;
 	void *msg_bytes;
 
+	WebcfgInfo("Inside SendNotification_rbus\n");
 	if(source != NULL && destination != NULL)
 	{
 		notif_wrp_msg = (wrp_msg_t *)malloc(sizeof(wrp_msg_t));
@@ -1991,19 +1992,19 @@ void sendNotification_rbus(char *payload, char *source, char *destination)
 		{
 			memset(notif_wrp_msg, 0, sizeof(wrp_msg_t));
 			notif_wrp_msg->msg_type = WRP_MSG_TYPE__EVENT;
-			WebcfgDebug("source: %s\n",source);
+			WebcfgInfo("source: %s\n",source);
 			notif_wrp_msg->u.event.source = source;
-			WebcfgDebug("destination: %s\n", destination);
+			WebcfgInfo("destination: %s\n", destination);
 			notif_wrp_msg->u.event.dest = strdup(destination);
 			contentType = strdup("application/json");
 			if(contentType != NULL)
 			{
 				notif_wrp_msg->u.event.content_type = contentType;
-				WebcfgDebug("content_type is %s\n",notif_wrp_msg->u.event.content_type);
+				WebcfgInfo("content_type is %s\n",notif_wrp_msg->u.event.content_type);
 			}
 			if(payload != NULL)
 			{
-				WebcfgDebug("Notification payload: %s\n",payload);
+				WebcfgInfo("Notification payload: %s\n",payload);
 				notif_wrp_msg->u.event.payload = (void *)payload;
 				notif_wrp_msg->u.event.payload_size = strlen(notif_wrp_msg ->u.event.payload);
 			}
@@ -2045,6 +2046,11 @@ void sendNotification_rbus(char *payload, char *source, char *destination)
 				WEBCFG_FREE(msg_bytes);
 			}
 		}
+		WebcfgInfo("notif_wrp_msg is NULL\n");
+	}
+	else
+	{
+		WebcfgInfo("Source or Destination is NULL\n");
 	}
 }
 
