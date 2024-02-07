@@ -18,6 +18,9 @@
 #include "webcfg_auth.h"
 #include "webcfg_generic.h"
 #include "webcfg.h"
+#include <sys/resource.h>
+#include <unistd.h>
+
 /*----------------------------------------------------------------------------*/
 /*                                   Macros                                   */
 /*----------------------------------------------------------------------------*/
@@ -153,8 +156,18 @@ void createNewAuthToken(char *newToken, size_t len, char *hw_mac, char* hw_seria
 
 void execute_token_script(char *token, char *name, size_t len, char *mac, char *serNum)
 {
+
     FILE* out = NULL, *file = NULL;
     char command[MAX_BUF_SIZE] = {'\0'};
+    struct rusage resource_usage;
+
+    // Get resource usage before popen
+    if (getrusage(RUSAGE_SELF, &resource_usage) != 0)
+    {
+        WebcfgError("Sleep for 3sec to avoid popen resource issue\n");
+        sleep(3);
+    }
+
     if(strlen(name)>0)
     {
         file = fopen(name, "r");
@@ -177,4 +190,5 @@ void execute_token_script(char *token, char *name, size_t len, char *mac, char *
             WebcfgError ("File %s open error\n", name);
         }
     }
+    return;
 }
