@@ -38,7 +38,7 @@
 #define buffLen 1024
 #define maxParamLen 128
 
-#define NUM_WEBCFG_ELEMENTS1 7
+#define NUM_WEBCFG_ELEMENTS1 8
 
 #if !defined (FEATURE_SUPPORT_MQTTCM)
 #define NUM_WEBCFG_ELEMENTS2 3
@@ -69,6 +69,7 @@
 #define PARAM_RFC_ENABLE "eRT.com.cisco.spvtg.ccsp.webpa.WebConfigRfcEnable"
 
 #define WEBCFG_UTIL_METHOD "Device.X_RDK_WebConfig.FetchCachedBlob"
+#define WEBCFG_SCRIPT_EXEC_PARAM "Device.X_RDK_WebConfig.ScriptExec"
 
 #define CCSP_Msg_Bus_OK             100
 #define CCSP_Msg_Bus_OOM            101

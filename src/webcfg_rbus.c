@@ -1276,6 +1276,76 @@ rbusError_t fetchCachedBlobHandler(rbusHandle_t handle, char const* methodName, 
 }
 
 /**
+ *Method handler to execute a script
+ */
+rbusError_t webcfgScriptExecHandler(rbusHandle_t handle, char const* methodName, rbusObject_t inParams, rbusObject_t outParams, rbusMethodAsyncHandle_t asyncHandle)
+{
+	(void) handle;
+	(void) outParams;
+	(void) asyncHandle;
+	WebcfgInfo("methodHandler called: %s\n", methodName);
+
+	//rbusObject_fwrite(inParams, 1, stdout);           //For Debug Purpose
+
+	if((methodName !=NULL) && (strcmp(methodName, WEBCFG_SCRIPT_EXEC_PARAM) == 0))
+	{
+		rbusProperty_t tempProp;
+		rbusValue_t propValue;
+		int len = 0;
+		char * valueString = NULL;
+
+		if(!isRfcEnabled())
+		{
+			WebcfgError("RfcEnable is disabled so, %s to execute script failed\n",methodName);
+			setFetchCachedBlobErrCode(outParams, ERROR_FAILURE);
+			return RBUS_ERROR_BUS_ERROR;
+		}
+
+		tempProp = rbusObject_GetProperties(inParams);
+		propValue = rbusProperty_GetValue(tempProp);
+
+		valueString = (char *)rbusValue_GetString(propValue, &len);
+
+		if(valueString == NULL)
+		{
+			WebcfgError("script name is NULL\n");
+			setFetchCachedBlobErrCode(outParams, ERROR_INVALID_INPUT);
+			return RBUS_ERROR_BUS_ERROR;
+		}
+
+		if((valueString != NULL) && (strlen(valueString) == 0))
+		{
+			WebcfgError("script name is empty\n");
+			setFetchCachedBlobErrCode(outParams, ERROR_INVALID_INPUT);
+			return RBUS_ERROR_BUS_ERROR;
+		}
+
+		WebcfgInfo("Script name to be executed is %s\n", valueString);
+
+		// Execute the script
+		char command[512];
+		snprintf(command, sizeof(command), "source %s", valueString);
+		int result = system(command);
+		if (result == -1)
+		{
+			WebcfgError("Failed to execute script: %s\n", command);
+			setFetchCachedBlobErrCode(outParams, ERROR_FAILURE);
+			return RBUS_ERROR_BUS_ERROR;
+		}
+		else
+		{
+			WebcfgInfo("Script executed successfully with exit code %d\n", WEXITSTATUS(result));
+			setFetchCachedBlobErrCode(outParams, ERROR_SUCCESS);
+			return RBUS_ERROR_SUCCESS;
+		}
+	}
+
+	WebcfgError("Method %s received is not supported\n", methodName);
+	setFetchCachedBlobErrCode(outParams, ERROR_FAILURE);
+	return RBUS_ERROR_BUS_ERROR;
+}
+
+/**
  * Register data elements for dataModel implementation using rbus.
  * Data element over bus will be Device.X_RDK_WebConfig.RfcEnable, Device.X_RDK_WebConfig.ForceSync,
  * Device.X_RDK_WebConfig.URL
@@ -1304,6 +1374,7 @@ WEBCFG_STATUS regWebConfigDataModel()
 		{WEBCFG_SUPPORTED_VERSION_PARAM, RBUS_ELEMENT_TYPE_PROPERTY, {webcfgSupportedVersionGetHandler, webcfgSupportedVersionSetHandler, NULL, NULL, NULL, NULL}},
 		{WEBCFG_SUBDOC_FORCERESET_PARAM, RBUS_ELEMENT_TYPE_PROPERTY, {webcfgSubdocForceResetGetHandler, webcfgSubdocForceResetSetHandler, NULL, NULL, resetEventSubHandler, NULL}},
 		{WEBCFG_UPSTREAM_EVENT, RBUS_ELEMENT_TYPE_EVENT, {NULL, NULL, NULL, NULL, eventSubHandler, NULL}},
+		{WEBCFG_SCRIPT_EXEC_PARAM, RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, webcfgScriptExecHandler}},
 		{WEBCFG_UTIL_METHOD, RBUS_ELEMENT_TYPE_METHOD, {NULL, NULL, NULL, NULL, NULL, fetchCachedBlobHandler}}
 	};
 
