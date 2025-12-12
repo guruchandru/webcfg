@@ -70,13 +70,13 @@ struct mock_token_data {
 
 struct mock_token_data mock_data;
 
-char device_mac[32] = {'\0'};
+char *mock_device_mac = "b42xxxxxxxxx";
 
 char* get_deviceMAC()
 {
-	char *device_mac = strdup("b42xxxxxxxxx");	
-	return device_mac;
+	return mock_device_mac;
 }
+
 char * getRebootReason()
 {
 	char *reason = strdup("factory-reset");
@@ -376,17 +376,47 @@ void test_replaceMac(){
 	CU_ASSERT_STRING_EQUAL(webConfigURL,"https://config/b42xxxxxxxxx/com");	
 }
 
+void test_replaceMac_NullUrl(){
+    char *configURL= NULL;
+    char c[] = "{sss}";
+    char *webConfigURL = replaceMacWord(configURL, c, get_deviceMAC());
+    CU_ASSERT_PTR_NULL(webConfigURL);
+}
+
+void test_replaceMac_NullMac(){
+    char *configURL= "https://config/{sss}/com";
+    char c[] = "{sss}";
+    mock_device_mac = NULL;
+    char *webConfigURL = replaceMacWord(configURL, c, get_deviceMAC());
+    CU_ASSERT_STRING_EQUAL(webConfigURL,"https://config/000000000000/com");
+    mock_device_mac = "b42xxxxxxxxx"; // Restore for other tests
+}
+
 void test_checkValidURL_ValidURL(){
 
-	char *webConfigURL = strdup("https://sample/device/123456ffaa/config");
+	char *webConfigURL = strdup("https://sample/device/b42xxxxxxxxx/config");
 	checkValidURL(&webConfigURL);
-	const char *expected_url ="https://sample/device/123456ffaa/config";
+	const char *expected_url ="https://sample/device/b42xxxxxxxxx/config";
 	CU_ASSERT_STRING_EQUAL(webConfigURL,expected_url);
 }
 
 void test_checkValidURL_InvalidURL(){
 
 	char *webConfigURL = strdup("https://sample/device//config");
+	checkValidURL(&webConfigURL);
+	const char *expected_url ="https://sample/device/b42xxxxxxxxx/config";
+	CU_ASSERT_STRING_EQUAL(webConfigURL,expected_url);
+}
+
+void test_checkValidURL_NullInput(){
+    char *webConfigURL = NULL;
+    checkValidURL(&webConfigURL);
+    CU_ASSERT_PTR_NULL(webConfigURL);
+}
+
+void test_checkValidURL_InvalidMac(){
+
+	char *webConfigURL = strdup("https://sample/device/c44xxxxxxxxx/config");
 	checkValidURL(&webConfigURL);
 	const char *expected_url ="https://sample/device/b42xxxxxxxxx/config";
 	CU_ASSERT_STRING_EQUAL(webConfigURL,expected_url);
@@ -1459,8 +1489,12 @@ void add_suites( CU_pSuite *suite )
     *suite = CU_add_suite( "tests", NULL, NULL );
       CU_add_test( *suite, "test  generate_trans_uuid", test_generate_trans_uuid);
       CU_add_test( *suite, "test  replaceMacWord", test_replaceMac);  
+      CU_add_test( *suite, "test  replaceMacWord_NullMac", test_replaceMac_NullMac);
+      CU_add_test( *suite, "test replaceMac_NullUrl", test_replaceMac_NullUrl);
       CU_add_test( *suite, "test  checkValidURL_ValidURL", test_checkValidURL_ValidURL);  
       CU_add_test( *suite, "test  checkValidURL_InvalidURL", test_checkValidURL_InvalidURL);  
+      CU_add_test( *suite, "test  checkValidURL_NullInput", test_checkValidURL_NullInput);
+      CU_add_test( *suite, "test checkValidURL_InvalidMac", test_checkValidURL_InvalidMac);
       CU_add_test( *suite, "test  createCurlHeader", test_createHeader);
 	  CU_add_test( *suite, "test  createHeader_doc_header_max_data", test_createHeader_doc_header_max_data);
 	  CU_add_test( *suite, "test  createHeader_primary_sync", test_createHeader_primary_sync);

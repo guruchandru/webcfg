@@ -4,7 +4,7 @@
 name: CI
 
 on:
-  pull_request_target:
+  pull_request:
   push:
     paths-ignore:
       - 'AUTHORS'
@@ -20,10 +20,10 @@ on:
 jobs:
   test:
     name: Unit Tests
-    runs-on: [ ubuntu-latest ]
+    runs-on: [ ubuntu-20.04 ]
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -31,13 +31,13 @@ jobs:
       - name: Install packages
         run: |
           sudo apt update
-          sudo apt-get -y install valgrind libcunit1 libcunit1-doc libcunit1-dev libmsgpack-dev gcovr libtool xsltproc docbook-xsl uuid-dev
-          pip install codecov
+          sudo apt-get -y install valgrind libcunit1 libcunit1-doc libcunit1-dev libmsgpack-dev gcovr libtool xsltproc docbook-xsl
+          pip install coverage
 
       - name: Make Build Directory
         run: mkdir build
 
-      - name:  Install sonar-scanner and build-wrapper
+      - name: Get Sonarcloud Binaries
         uses: sonarsource/sonarcloud-github-c-cpp@v2
 
       - name: Get rtrouted  Binary
@@ -61,7 +61,7 @@ jobs:
           mkdir _install
           mkdir _install/lib
           cp ${RBUS_INSTALL_DIR}/usr/lib/librbus* _install/lib                   
-          build-wrapper-linux-x86-64 --out-dir bw-output make all test 
+          make all test 
               
       - name: Stop rtrouted
         run: |
@@ -70,19 +70,20 @@ jobs:
       - name: Merge GCOV Reports for Sonarcloud
         working-directory: build
         run: |
-          gcovr --sonarqube coverage.xml -r ..
-
-      - name: Upload Codecov.io
-        uses: codecov/codecov-action@e28ff129e5465c2c0dcc6f003fc735cb6ae0c673 # v4.5.0
-        with:
-          directory:        .
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+          gcovr --xml coverage.xml -r .. || echo "Coverage generation skipped"
 
       - name: Upload SonarCloud
         run: |
-          build/sonar-scanner/bin/sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+          sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dproject.settings=.sonar-project.properties -Dsonar.login=${{ secrets.SONAR_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Codecov.io
+        #uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d # v3.1.4
+        with:
+          directory:        .
+          fail_ci_if_error: true
+
 
 

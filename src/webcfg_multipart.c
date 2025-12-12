@@ -266,6 +266,11 @@ WEBCFG_STATUS webcfg_http_request(char **configData, int r_count, int status, lo
 			//Replace {mac} string from default init url with actual deviceMAC
 			WebcfgDebug("replaceMacWord to actual device mac\n");
 			webConfigURL = replaceMacWord(configURL, c, get_deviceMAC());
+			if(webConfigURL == NULL)
+			{
+				WebcfgError("replaceMacWord failed. Failed to set webConfigURL\n");
+                return WEBCFG_FAILURE;
+			}
 			//Check the url is having empty mac or actual devicemac
 			checkValidURL(&webConfigURL);
 			if(get_global_supplementarySync() == 0)
@@ -2252,6 +2257,11 @@ WEBCFG_STATUS print_tmp_doc_list(size_t mp_count)
 
 void checkValidURL(char **s) {
 
+    if (!s || *s == NULL)
+    {
+        WebcfgError("webConfigURL is Empty or NULL\n");
+        return;
+    }
     char modified_url[256] = {0};
     int maxRetryTime = 31;
     int backoffRetryTime = 0;
@@ -2271,10 +2281,10 @@ void checkValidURL(char **s) {
             while (1) {
                 if (backoffRetryTime <= maxRetryTime) 
                 {
-                    backoffRetryTime = (int)pow(2, c) - 1;
+                    backoffRetryTime = (1 << c) - 1;
                 }        
                 const char *mac = get_deviceMAC();
-                if (mac != NULL && strncmp(mac, "000000000000", 12) != 0)
+                if (mac != NULL && mac[0] != '\0' && strncmp(mac, "000000000000", 12) != 0)
                 {
                     WebcfgDebug("Mac fetched is %s\n", mac);
                     strncat(modified_url, mac, sizeof(modified_url) - strlen(modified_url) - 1);
@@ -2305,7 +2315,7 @@ void checkValidURL(char **s) {
 
 			// Validate if the MAC is correct for the box
             const char *mac = get_deviceMAC();
-            if (mac != NULL && strncmp(mac, start, 12) != 0)
+            if (mac != NULL && mac[0] != '\0' && strncmp(mac, start, 12) != 0)
 			{
                 WebcfgError("MAC Address in URL does not match actual device MAC. Updating...\n");
                 strncpy(modified_url, *s, start - *s);
@@ -2323,39 +2333,57 @@ void checkValidURL(char **s) {
 
 char *replaceMacWord(const char *s, const char *macW, const char *deviceMACW)
 {
+    if (!s || !macW)
+    {
+        WebcfgInfo("macW or configURL is NULL\n");
+        return NULL;
+    }
 	char *result = NULL;
 	int i, cnt = 0;
 
-	if(deviceMACW != NULL)
-	{
-		int deviceMACWlen = strlen(deviceMACW);
-		int macWlen = strlen(macW);
-		// Counting the number of times mac word occur in the string
-		for (i = 0; s[i] != '\0'; i++)
-		{
-			if (strstr(&s[i], macW) == &s[i])
-			{
-			    cnt++;
-			    // Jumping to index after the mac word.
-			    i += macWlen - 1;
-			}
-		}
+    // When device mac is NULL replace with a fallback mac
+    if (deviceMACW == NULL || deviceMACW[0] == '\0')
+    {
+        WebcfgInfo("Device mac is NULL or Empty. Setting fallback mac\n");
+        deviceMACW = "000000000000";
+    }
 
-		result = (char *)malloc(i + cnt * (deviceMACWlen - macWlen) + 1);
-		i = 0;
-		while (*s)
+	int deviceMACWlen = strlen(deviceMACW);
+	int macWlen = strlen(macW);
+
+	// Counting the number of times mac word occur in the string
+	for (i = 0; s[i] != '\0'; i++)
+	{
+		if (strstr(&s[i], macW) == &s[i])
 		{
-			if (strstr(s, macW) == s)
-			{
-				strcpy(&result[i], deviceMACW);
-				i += deviceMACWlen;
-				s += macWlen;
-			}
-			else
-			    result[i++] = *s++;
+			cnt++;
+			// Jumping to index after the mac word.
+			i += macWlen - 1;
 		}
-		result[i] = '\0';
 	}
+
+	result = (char *)malloc(i + cnt * (deviceMACWlen - macWlen) + 1);
+	if(result == NULL)
+	{
+		WebcfgError("malloc failed for result\n");
+		return NULL;
+	}
+
+	i = 0;
+	while (*s)
+	{
+		if (strstr(s, macW) == s)
+		{
+			strcpy(&result[i], deviceMACW);
+			i += deviceMACWlen;
+			s += macWlen;
+		}
+		else
+		{
+			result[i++] = *s++;
+		}
+	}
+	result[i] = '\0';
 	return result;
 }
 
